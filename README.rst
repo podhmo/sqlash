@@ -127,8 +127,8 @@ many to many exmaples
 
     print(serializer.serialize(team0, ["name", "created_at", Pair("members", ["name", "created_at"])]))
     # {'created_at': None, 'name': 'foo',
-       'members': [{'created_at': None, 'name': 'x'},
-                   {'created_at': None, 'name': 'y'}]}
+    #  'members': [{'created_at': None, 'name': 'x'},
+    #              {'created_at': None, 'name': 'y'}]}
 
 call with ["name", "created_at", Pair("members", ["name", "created_at"])]. so, collecting name and created.
 
