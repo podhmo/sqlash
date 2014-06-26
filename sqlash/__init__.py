@@ -58,14 +58,33 @@ class Abbreviation(object):
 Empty = ()
 
 
-class Serializer(object):
-    def __init__(self, convertions=None, control=Control(), abbreviation=Abbreviation, factory=dict):
+class SerializerFactory(object):
+    def __init__(self, convertions=None, control=Control(), factory=dict):
         self.convertions = convertions or {}
         self.control = control
-        self.abbreviation = abbreviation(self.control)
         self.factory = factory
 
-    def serialize(self, ob, q_collection):
+    def __call__(self, renaming_options=None, abbreviation=Abbreviation):
+        return Serializer(
+            self.convertions,
+            self.control,
+            self.factory,
+            renaming_options=renaming_options or {},
+            abbreviation=abbreviation(self.control)
+        )
+
+
+class Serializer(object):
+    def __init__(self, convertions, control, factory, renaming_options, abbreviation):
+        self.convertions = convertions
+        self.control = control
+        self.factory = factory
+
+        self.abbreviation = abbreviation
+        self.renaming_options = renaming_options
+
+    def serialize(self, ob, q_collection, renaming_options=None):
+        renaming_options = renaming_options or {}
         r = self.factory()
         for q in q_collection:
             for q in self.abbreviation(ob, q):
@@ -88,17 +107,20 @@ class Serializer(object):
         else:
             return (S.atom, q, self.control.get_property_from_object(ob, q), getattr(ob, q))
 
+    def add_result(self, r, k, v):
+        r[self.renaming_options.get(k, k)] = v
+
     def build(self, r, shape, q, prop, val):
         if shape == S.atom:
             type_ = self.control.get_type_from_property(prop)
             convert = self.convertions.get(type_)
             if convert:
-                r[q] = convert(val, r)
+                self.add_result(r, q, convert(val, r))
             else:
-                r[q] = val
+                self.add_result(r, q, val)
         elif shape == S.array:
-            r[q] = val
+            self.add_result(r, q, val)
         elif shape == S.object:
-            r[q] = val
+            self.add_result(r, q, val)
         else:
             raise NotImplemented(shape)

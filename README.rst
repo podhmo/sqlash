@@ -38,7 +38,7 @@ models definition
 
     # create serializer
 
-    from sqlash import Pair, Serializer
+    from sqlash import Pair, SerializerFactory
 
     def datetime_for_human(dt, r):
         return dt.strftime("%Y/%m/%d %H:%M:%S")
@@ -46,7 +46,8 @@ models definition
     def int_for_human(v, r):
         return "this is {}".format(v)
 
-    serializer = Serializer({t.Integer: int_for_human, t.DateTime: datetime_for_human})
+    factory = SerializerFactory({t.Integer: int_for_human, t.DateTime: datetime_for_human})
+    serializer = factory()
 
 Serializer object is main of sqlash.
 constructor of this object takes a mapping of sqlalchemy's field type to convertion function.
@@ -141,3 +142,15 @@ abbreviation
     user = User(group_id=1, name="foo", created_at=datetime(2000, 1, 1))
     result = serializer.serialize(user, ["*"])
     assert result == {'name': 'foo', 'created_at': '2000/01/01 00:00:00', 'id': 'this is None'}
+
+renaming
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+passing renaming options call factory, then renaming key-name of dict.
+
+.. code:: python
+
+    factory = SerializerFactory({t.Integer: int_for_human, t.DateTime: datetime_for_human})
+    target = factory({"name": "Name", "created_at": "CreatedAt", "id": "Id"})
+    result = target.serialize(user, ["*"])
+    assert result == {'Name': 'foo', 'CreatedAt': '2000/01/01 00:00:00', 'Id': 'this is None'}
