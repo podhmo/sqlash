@@ -64,32 +64,50 @@ class SerializerFactory(object):
         self.control = control
         self.factory = factory
 
-    def __call__(self, renaming_options=None, abbreviation=Abbreviation):
+    def __call__(self, renaming=None, merging=None, abbreviation=Abbreviation):
         return Serializer(
             self.convertions,
             self.control,
             self.factory,
-            renaming_options=renaming_options or {},
+            renaming_options=renaming or {},
+            merging_options=merging or {},
             abbreviation=abbreviation(self.control)
         )
 
 
 class Serializer(object):
-    def __init__(self, convertions, control, factory, renaming_options, abbreviation):
+    def __init__(self, convertions, control, factory, renaming_options, merging_options, abbreviation):
         self.convertions = convertions
         self.control = control
         self.factory = factory
 
         self.abbreviation = abbreviation
+        self.merging_options = merging_options
         self.renaming_options = renaming_options
 
-    def serialize(self, ob, q_collection, renaming_options=None):
-        renaming_options = renaming_options or {}
+        self._mstack = []
+
+    def serialize(self, ob, q_collection):
+        env = {"merging": {}, "used": {}}
+        self._mstack.append(env)
         r = self.factory()
         for q in q_collection:
             for q in self.abbreviation(ob, q):
-                self.build(r, *self.parse(ob, q))
+                self.consume(ob, q, r, env)
+        self._mstack.pop()
         return r
+
+    def consume(self, ob, q, r, env):
+        if isinstance(q, Pair):
+            k = q.left
+        else:
+            k = q
+
+        if k in self.merging_options:
+            env["merging"][k].append(q)
+
+        env["used"][k] = 1
+        self.build(r, *self.parse(ob, q))
 
     def parse(self, ob, q):
         if isinstance(q, Pair):
