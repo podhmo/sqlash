@@ -154,3 +154,6 @@ passing renaming options call factory, then renaming key-name of dict.
     target = factory({"name": "Name", "created_at": "CreatedAt", "id": "Id"})
     result = target.serialize(user, ["*"])
     assert result == {'Name': 'foo', 'CreatedAt': '2000/01/01 00:00:00', 'Id': 'this is None'}
+
+merging element
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

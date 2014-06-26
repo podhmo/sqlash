@@ -129,9 +129,57 @@ def test_renaming():
 
     user = User(group_id=1, name="foo", created_at=datetime(2000, 1, 1))
     factory = _makeOne({t.Integer: int_for_human, t.DateTime: datetime_for_human})
-    target = factory({"name": "Name", "created_at": "CreatedAt", "id": "Id"})
+    target = factory(renaming={"name": "Name", "created_at": "CreatedAt", "id": "Id"})
     result = target.serialize(user, ["*"])
     assert result == {'Name': 'foo', 'CreatedAt': '2000/01/01 00:00:00', 'Id': 'this is None'}
+
+
+def test_merging__remove_on_merge():
+    from sqlash import Pair
+    from datetime import datetime
+    from sqlalchemy import types as t
+
+    user = User(group_id=1, name="foo", created_at=datetime(2000, 1, 1))
+    factory = _makeOne({t.Integer: int_for_human, t.DateTime: datetime_for_human})
+    target = factory(merging={("name", "id"): lambda x, y, r: Pair("name+id", [x, y])})
+    result = target.serialize(user, ["*"], remove_on_merge=True)
+    assert result == {'name+id': ['foo', 'this is None'], 'created_at': '2000/01/01 00:00:00'}
+
+
+def test_merging():
+    from sqlash import Pair
+    from datetime import datetime
+    from sqlalchemy import types as t
+
+    user = User(group_id=1, name="foo", created_at=datetime(2000, 1, 1))
+    factory = _makeOne({t.Integer: int_for_human, t.DateTime: datetime_for_human})
+    target = factory(merging={("name", "id"): lambda x, y, r: Pair("name+id", [x, y])})
+    result = target.serialize(user, ["*"])
+    assert result == {'name+id': ['foo', 'this is None'],
+                      'name': 'foo',
+                      'id': 'this is None',
+                      'created_at': '2000/01/01 00:00:00'}
+
+
+def test_merging__nested():
+    from sqlash import Pair
+    from datetime import datetime
+    from sqlalchemy import types as t
+
+    group = Group(name="Parent")
+    user = User(group=group, name="foo", created_at=datetime(2000, 1, 1))
+
+    def make_fullname(group_name, user_name, r):
+        return ("fullname", group_name + "." + user_name)
+
+    factory = _makeOne({t.Integer: int_for_human, t.DateTime: datetime_for_human})
+    target = factory(merging={("group.name", "name"): lambda x, y, r: Pair("name+id", [x, y])})
+    result = target.serialize(user, ["*"])
+
+    assert result == {'fullname': "Parent.foo",
+                      'name': 'foo',
+                      'id': 'this is None',
+                      'created_at': '2000/01/01 00:00:00'}
 
 
 def test_relation_onetomany():

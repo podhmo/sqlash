@@ -83,28 +83,48 @@ class Serializer(object):
 
         self.abbreviation = abbreviation
         self.merging_options = merging_options
+        self.merging_keys = {k: 1 for ks in merging_options for k in ks}
         self.renaming_options = renaming_options
 
         self._mstack = []
 
-    def serialize(self, ob, q_collection):
-        env = {"merging": {}, "used": {}}
+    def serialize(self, ob, q_collection, remove_on_merge=False):
+        env = {"merging": set(), "used": {}}
         self._mstack.append(env)
         r = self.factory()
+
         for q in q_collection:
             for q in self.abbreviation(ob, q):
-                self.consume(ob, q, r, env)
+                self.consume(ob, q, r, env, remove_on_merge=remove_on_merge)
+
+        merging_r = {}
+
+        for q in env["merging"]:
+            self.build(merging_r, *self.parse(ob, q))
+
+        for ks, fn in self.merging_options.items():
+            args = [merging_r.get(k) for k in ks]
+            args.append(r)
+            name, val = fn(*args)
+            r[name] = val
+
         self._mstack.pop()
         return r
 
-    def consume(self, ob, q, r, env):
+    def consume(self, ob, q, r, env, remove_on_merge=False):
         if isinstance(q, Pair):
             k = q.left
         else:
             k = q
 
-        if k in self.merging_options:
-            env["merging"][k].append(q)
+        if k in env["used"]:
+            return
+
+        if k in self.merging_keys:
+            env["used"][k] = 1
+            env["merging"].add(q)
+            if remove_on_merge:
+                return
 
         env["used"][k] = 1
         self.build(r, *self.parse(ob, q))
