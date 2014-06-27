@@ -40,7 +40,7 @@ class PyTest(TestCommand):
 
 
 setup(name='sqlash',
-      version='0.0',
+      version='0.1',
       description='sqlalchemy shorthand (dict from object)',
       long_description=README + '\n\n' +  CHANGES,
       classifiers=[
