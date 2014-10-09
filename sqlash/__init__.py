@@ -62,6 +62,11 @@ class Abbreviation(object):
             for prop in mapper.column_attrs:
                 if not any(c.foreign_keys for c in getattr(prop, "columns", Empty)):
                     yield prop.key
+        elif ":ALL:" == name:
+            mapper = self.control.get_mapper_from_object(ob)
+            for prop in mapper.column_attrs:
+                for c in getattr(prop, "columns", Empty):
+                    yield prop.key
         else:
             yield name
 Empty = ()
